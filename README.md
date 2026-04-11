@@ -135,4 +135,3 @@ docker-compose up -d --build
 <div align="center">
   <i>Создано для автоматизации рутины и комфортного общения в Telegram.</i>
 </div>
-```

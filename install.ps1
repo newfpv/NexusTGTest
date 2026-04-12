@@ -138,8 +138,10 @@ try {
     # ---------------------------------------------------------
     Draw-ProgressBar 5 "Building environment with 'uv'..."
     Write-Host "⚡ Installing libraries (this will just take a few seconds)..." -ForegroundColor Yellow
+    
     uv venv
-    uv pip install .
+    # FIX: Install dependencies directly from pyproject.toml without building the package
+    uv pip install -r pyproject.toml
 
     # ---------------------------------------------------------
     # STEP 6: Desktop Shortcuts

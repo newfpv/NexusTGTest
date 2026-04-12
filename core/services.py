@@ -1,3 +1,4 @@
+# core/services.py
 import os
 import re
 import time
@@ -48,7 +49,7 @@ async def generate_ai_response(prompt_context: str, media_path: str = None, cust
         config = await repo.get_global_config()
         
     api_keys = [k.strip() for k in (config.api_keys or "").split(",") if k.strip()]
-    model_fallback_list = [m.strip() for m in (config.model_fallback_list or "gemini-1.5-flash").split(",") if m.strip()]
+    model_fallback_list = [m.strip() for m in (config.model_fallback_list or "gemini-2.5-flash-lite").split(",") if m.strip()]
     
     if not api_keys:
         return _("err_no_api_keys")
@@ -96,9 +97,11 @@ async def generate_ai_response(prompt_context: str, media_path: str = None, cust
                         ),
                         timeout=35.0
                     )
-                    if response.text:
+                    if response.text and response.text.strip():
                         state.consecutive_failures = 0
                         return response.text
+                    else:
+                        continue
                 except Exception as e:
                     err_str = str(e).lower()
                     if "429" in err_str:
@@ -231,7 +234,7 @@ async def generate_ai_response_stream(prompt_context: str, media_path: str = Non
         config = await repo.get_global_config()
         
     api_keys = [k.strip() for k in (config.api_keys or "").split(",") if k.strip()]
-    model_fallback_list = [m.strip() for m in (config.model_fallback_list or "gemini-1.5-flash").split(",") if m.strip()]
+    model_fallback_list = [m.strip() for m in (config.model_fallback_list or "gemini-2.5-flash-lite").split(",") if m.strip()]
     
     if not api_keys:
         yield _("err_no_api_keys")
@@ -268,14 +271,19 @@ async def generate_ai_response_stream(prompt_context: str, media_path: str = Non
 
                 try:
                     client = genai.Client(api_key=api_key)
+                    got_response = False
                     async for chunk in client.aio.models.generate_content_stream(
                         model=model_name,
                         contents=contents,
                         config=get_model_config(search_enabled=actual_search)
                     ):
-                        if chunk.text:
+                        if chunk.text and chunk.text.strip():
+                            got_response = True
                             yield chunk.text
-                    return
+                    if got_response:
+                        return
+                    else:
+                        continue
                 except Exception as e:
                     err_str = str(e).lower()
                     if "429" in err_str:
@@ -327,11 +335,58 @@ async def build_dialog_context(client, chat_id: int, limit: int, target_msg_id: 
     last_date_str = None
     latest_media_duration = 0
     video_too_long = False
-    
+
     async with AsyncSessionLocal() as session:
         repo = CoreRepository(session)
+        messages = [msg async for msg in client.get_chat_history(chat_id, limit=limit)]
         
-        async for msg in client.get_chat_history(chat_id, limit=limit):
+        media_tasks = []
+
+        async def fetch_audio(msg):
+            m_ext = ".ogg" if msg.voice else ".mp4"
+            dl_path = await client.download_media(msg, file_name=f"data/{msg.id}_audio{m_ext}")
+            if dl_path:
+                media_paths_to_cleanup.append(dl_path)
+                transc = await transcribe_media(dl_path)
+                if transc:
+                    await repo.save_media_memory(msg.id, "transcript", transc)
+
+        async def fetch_video(msg):
+            m_ext = ".jpg" if msg.photo else ".mp4"
+            dl_path = await client.download_media(msg, file_name=f"data/{msg.id}_media{m_ext}")
+            if dl_path:
+                media_paths_to_cleanup.append(dl_path)
+                desc = await generate_media_description(dl_path)
+                if desc:
+                    await repo.save_media_memory(msg.id, "description", desc)
+
+        for msg in messages:
+            is_ignored_msg = False
+            try:
+                if hasattr(repo, 'is_msg_ignored'):
+                    is_ignored_msg = await repo.is_msg_ignored(chat_id, msg.id)
+            except Exception: pass
+            if is_ignored_msg: continue
+
+            if msg.voice or msg.video_note:
+                if latest_media_duration == 0 and not (msg.from_user and msg.from_user.is_self):
+                    latest_media_duration = getattr(msg.voice, 'duration', getattr(msg.video_note, 'duration', 5))
+                    if latest_media_duration > 1800: video_too_long = True
+                cached = await repo.get_media_memory(msg.id, "transcript")
+                if not cached: media_tasks.append(fetch_audio(msg))
+
+            elif msg.photo or msg.video:
+                if msg.video and latest_media_duration == 0 and not (msg.from_user and msg.from_user.is_self):
+                    latest_media_duration = getattr(msg.video, 'duration', 5)
+                    if latest_media_duration > 1800: video_too_long = True
+                if not (target_msg_id and msg.id == target_msg_id):
+                    cached = await repo.get_media_memory(msg.id, "description")
+                    if not cached: media_tasks.append(fetch_video(msg))
+
+        if media_tasks:
+            await asyncio.gather(*media_tasks)
+
+        for msg in messages:
             is_ignored_msg = False
             try:
                 if hasattr(repo, 'is_msg_ignored'):
@@ -342,69 +397,42 @@ async def build_dialog_context(client, chat_id: int, limit: int, target_msg_id: 
             msg_date = msg.date if msg.date.tzinfo else msg.date.replace(tzinfo=timezone.utc)
             current_date_str = msg_date.strftime("%d %B %Y")
             time_str = msg_date.strftime("%H:%M")
-            
+
             if current_date_str != last_date_str:
                 history_lines.insert(0, _("ai_date_divider", date=current_date_str))
                 last_date_str = current_date_str
-                
+
             sender = _("me_sender") if (msg.from_user and msg.from_user.is_self) else (chat_name or _("other_sender"))
-            text = msg.text or msg.caption or ""  
+            text = msg.text or msg.caption or ""
 
             forward_prefix = ""
             f_name = ""
-            
+
             if getattr(msg, 'forward_origin', None):
                 origin = msg.forward_origin
                 f_name = _("someone")
-                if getattr(origin, 'sender_user', None) and origin.sender_user: 
+                if getattr(origin, 'sender_user', None) and origin.sender_user:
                     f_name = origin.sender_user.first_name
-                elif getattr(origin, 'sender_user_name', None): 
+                elif getattr(origin, 'sender_user_name', None):
                     f_name = origin.sender_user_name
-                elif getattr(origin, 'chat', None) and origin.chat: 
+                elif getattr(origin, 'chat', None) and origin.chat:
                     f_name = origin.chat.title or origin.chat.first_name
-                
+
                 forward_prefix = _("ai_forwarded_from", name=f_name) + " "
 
             if msg.voice or msg.video_note:
-                if latest_media_duration == 0 and not (msg.from_user and msg.from_user.is_self):
-                    latest_media_duration = getattr(msg.voice, 'duration', getattr(msg.video_note, 'duration', 5))
-                    if latest_media_duration > 1800: video_too_long = True
-                
                 cached_audio = await repo.get_media_memory(msg.id, "transcript")
                 if cached_audio: text = _("ai_voice_memory", text=cached_audio)
-                else:
-                    m_ext = ".ogg" if msg.voice else ".mp4"
-                    dl_path = await client.download_media(msg, file_name=f"data/{msg.id}_audio{m_ext}")
-                    if dl_path:
-                        media_paths_to_cleanup.append(dl_path)
-                        transc = await transcribe_media(dl_path)
-                        if transc:
-                            await repo.save_media_memory(msg.id, "transcript", transc)
-                            text = _("ai_voice_memory", text=transc)
-                        else: text = _("ai_msg_voice")
-                    else: text = _("ai_msg_voice")
+                else: text = _("ai_msg_voice")
 
             elif msg.photo or msg.video:
-                if msg.video and latest_media_duration == 0 and not (msg.from_user and msg.from_user.is_self):
-                    latest_media_duration = getattr(msg.video, 'duration', 5)
-                    if latest_media_duration > 1800: video_too_long = True
-                    
                 m_type_tag = _("ai_tag_photo") if msg.photo else _("ai_tag_video")
-                
                 if target_msg_id and msg.id == target_msg_id:
                     text = _("ai_media_current", type=m_type_tag, id=msg.id, text=text)
                 else:
                     cached_desc = await repo.get_media_memory(msg.id, "description")
                     if cached_desc:
                         text = _("ai_media_memory_desc", type=m_type_tag, id=msg.id, desc=cached_desc, text=text)
-                    else:
-                        m_ext = ".jpg" if msg.photo else ".mp4"
-                        dl_path = await client.download_media(msg, file_name=f"data/{msg.id}_media{m_ext}")
-                        if dl_path:
-                            media_paths_to_cleanup.append(dl_path)
-                            desc = await generate_media_description(dl_path)
-                            await repo.save_media_memory(msg.id, "description", desc)
-                            text = _("ai_media_memory_desc", type=m_type_tag, id=msg.id, desc=desc, text=text)
 
             if msg.sticker: text = _("ai_msg_sticker", emoji=msg.sticker.emoji if hasattr(msg.sticker, 'emoji') and msg.sticker.emoji else "")
 

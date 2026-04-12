@@ -12,7 +12,7 @@ from aiogram import Router, F, types, Bot
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
-from sqlalchemy.orm.attributes import flag_modified  # <-- ФИКС
+from sqlalchemy.orm.attributes import flag_modified
 
 from pyrogram import Client, filters, enums
 from pyrogram.enums import ChatType
@@ -225,6 +225,18 @@ async def toggle_chat_search_cb(call: types.CallbackQuery, state: FSMContext):
     await chat_settings_menu(call, state, chat_id=chat_id)
     await call.answer(_("ai_c_search_changed_alert"))
 
+@router.callback_query(F.data == "ai_toggle_search_global")
+async def toggle_search_global_cb(call: types.CallbackQuery, state: FSMContext):
+    cfg = await _get_g_cfg()
+    new_state = not cfg["search_enabled"]
+    await _upd_g_cfg(db_fields={"google_search": new_state})
+    async with AsyncSessionLocal() as session:
+        repo = CoreRepository(session)
+        await repo.force_update_all_chats_search(new_state)
+    await global_settings_menu(call, state)
+    try: await call.answer(_("ai_g_search_applied_alert"), show_alert=True)
+    except: pass
+
 @router.callback_query(F.data.regexp(r"^ai_toggle_-?\d+$"))
 async def toggle_chat(call: types.CallbackQuery, state: FSMContext):
     chat_id = int(call.data.split("_")[2])
@@ -281,14 +293,6 @@ async def human_settings_chat(call: types.CallbackQuery, state: FSMContext, chat
 async def toggle_global_ai_cb(call: types.CallbackQuery, state: FSMContext):
     cfg = await _get_g_cfg()
     await _upd_g_cfg(db_fields={"global_ai_active": not cfg["is_active"]})
-    await global_settings_menu(call, state)
-    try: await call.answer()
-    except: pass
-
-@router.callback_query(F.data == "ai_toggle_search_global")
-async def toggle_search_global_cb(call: types.CallbackQuery, state: FSMContext):
-    cfg = await _get_g_cfg()
-    await _upd_g_cfg(db_fields={"google_search": not cfg["search_enabled"]})
     await global_settings_menu(call, state)
     try: await call.answer()
     except: pass
@@ -661,7 +665,6 @@ async def save_delays(message: types.Message, state: FSMContext):
     except: await safe_edit(message, state, _("ai_c_delays_error"), kb)
     finally: await state.set_state(None)
 
-# USERBOT LOGIC
 def register_userbot(app: Client, bot: Bot):
     async def process_reply(client, message):
         media_paths_to_cleanup = []
@@ -717,7 +720,6 @@ def register_userbot(app: Client, bot: Bot):
 
             chat_name = message.from_user.first_name if message.from_user else (message.chat.title or _("other_sender"))
             
-            # --- ВЫЗОВ ЯДРА ДЛЯ СБОРКИ ИСТОРИИ ---
             history_str, new_paths, latest_media_duration, video_too_long = await build_dialog_context(client, chat_id, limit=50, target_msg_id=message.id, chat_name=chat_name)
             media_paths_to_cleanup.extend(new_paths)
 

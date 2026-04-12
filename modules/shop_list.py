@@ -1,3 +1,4 @@
+# modules/shop_list.py
 import os
 import json
 import asyncio
@@ -105,16 +106,26 @@ async def shop_save_chats(message: types.Message, state: FSMContext):
         await message.bot.edit_message_text(_("menu_title"), message.chat.id, data["menu_msg_id"], reply_markup=await get_shop_kb(), parse_mode="HTML")
 
 def register_userbot(app: Client):
-    
     async def shop_filter(*args):
         m = args[-1]
+        
+        if getattr(m, "checklist", None):
+            return False
+            
+        text_to_check = m.text or m.caption or ""
+        if not text_to_check:
+            return False
+            
+        if _("checklist_title") in text_to_check or _("markdown_title") in text_to_check:
+            return False
+            
         cfg = await _get_cfg()
         if not cfg["active"]: return False
         
         is_me = (m.from_user and m.from_user.is_self)
         if not is_me and not cfg["allow_others"]: return False
 
-        if m.text and re.match(rf"^{re.escape(cfg['command'])}(?:\s+|$)", m.text):
+        if re.match(rf"^{re.escape(cfg['command'])}(?:\s+|$)", text_to_check):
             return True
         
         if m.reply_to_message and m.reply_to_message.from_user and m.reply_to_message.from_user.is_self:
@@ -207,7 +218,7 @@ def register_userbot(app: Client):
             logging.error(_("log_shop_error", e=e))
             if is_manual: 
                 err_msg = _("error_send", e=e)
-                if is_me: await message.edit(err_msg)
+                if (message.from_user and message.from_user.is_self): await message.edit(err_msg)
                 else: await client.send_message(message.chat.id, err_msg, reply_to_message_id=message.id)
         finally:
             typing_task.cancel()

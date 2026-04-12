@@ -1,12 +1,11 @@
 version: '3.8'
 
 services:
-  aitwin-bot:
+  nexustg:
     build: .
-    container_name: aitwin-bot
+    container_name: NexusTG_Main
     restart: unless-stopped
     env_file:
       - .env
     volumes:
-      # Папка data для сохранения БД, сессий Kurigram и кэша
       - ./data:/app/data

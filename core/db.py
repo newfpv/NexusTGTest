@@ -1,10 +1,11 @@
+# core/db.py
 import os
 from datetime import datetime
 from typing import Any, Dict, Optional
-from sqlalchemy import String, Integer, Boolean, Float, DateTime, Text, JSON, BigInteger, text
+from sqlalchemy import String, Integer, Boolean, Float, DateTime, Text, JSON, BigInteger, text, select
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from sqlalchemy.orm.attributes import flag_modified  # <-- ВАЖНЫЙ ИМПОРТ
+from sqlalchemy.orm.attributes import flag_modified
 from core.config import DB_PATH
 
 engine = create_async_engine(DB_PATH, echo=False)
@@ -22,7 +23,7 @@ class GlobalConfig(Base):
     api_id: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
     api_hash: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     api_keys: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
-    model_fallback_list: Mapped[Optional[str]] = mapped_column(Text, default="gemini-1.5-flash,gemini-2.0-flash-exp")
+    model_fallback_list: Mapped[Optional[str]] = mapped_column(Text, default="gemini-3.1-flash-lite-preview,gemini-3-flash-preview,gemini-2.5-flash,gemini-2.5-flash-lite")
     phone: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     session_string: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     global_ai_active: Mapped[bool] = mapped_column(Boolean, default=False)
@@ -132,7 +133,6 @@ class CoreRepository:
         await self.session.commit()
 
     async def is_msg_ignored(self, chat_id: int, message_id: int) -> bool:
-        from sqlalchemy import select
         res = await self.session.execute(select(IgnoredMessage).where(
             IgnoredMessage.chat_id == chat_id, 
             IgnoredMessage.message_id == message_id
@@ -152,7 +152,6 @@ class CoreRepository:
         await self.session.commit()
 
     async def get_media_memory(self, msg_id: int, m_type: str) -> Optional[str]:
-        from sqlalchemy import select
         res = await self.session.execute(select(MediaMemoryCache.content).where(
             MediaMemoryCache.msg_id == msg_id, 
             MediaMemoryCache.media_type == m_type
@@ -189,6 +188,19 @@ class CoreRepository:
         settings[module_name] = mod_cfg
         c.module_data = settings
         flag_modified(c, "module_data")
+        await self.session.commit()
+
+    async def force_update_all_chats_search(self, enabled: bool):
+        res = await self.session.execute(select(ChatConfig))
+        chats = res.scalars().all()
+        for c in chats:
+            m = c.module_data or {}
+            a = dict(m.get("ai_engine", {}))
+            a["search_enabled"] = enabled
+            new_settings = dict(m)
+            new_settings["ai_engine"] = a
+            c.module_data = new_settings
+            flag_modified(c, "module_data")
         await self.session.commit()
 
 async def init_db():

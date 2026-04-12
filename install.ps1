@@ -106,6 +106,15 @@ try {
 
     $EnvPath = Join-Path $InstallDir ".env"
     Write-Host "`n🔑 Connecting your Telegram Bot" -ForegroundColor Cyan
+    
+    Write-Host "====================================================" -ForegroundColor DarkGray
+    Write-Host "🤖 How to get your TG_BOT_TOKEN:" -ForegroundColor Green
+    Write-Host "1. Open Telegram and search for @BotFather (with a blue tick)."
+    Write-Host "2. Send the command: /newbot"
+    Write-Host "3. Choose a name and a username for your bot."
+    Write-Host "4. BotFather will give you a token (e.g. 1234567890:ABCdef...)."
+    Write-Host "====================================================`n" -ForegroundColor DarkGray
+
     while ($true) {
         $Token = Read-Host "👉 Paste your TG_BOT_TOKEN here"
         Write-Host "⏳ Verifying token with Telegram..." -ForegroundColor Yellow

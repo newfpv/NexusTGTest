@@ -1,8 +1,8 @@
 <div align="center">
   <img src="https://via.placeholder.com/800x200/000000/FFFFFF?text=NexusTG+Banner" alt="NexusTG Banner">
 
-  <h1>🤖 NexusTG | Твой цифровой ИИ-двойник</h1>
-  <p><b>Мощный Telegram-юзербот с управлением через классического бота</b></p>
+  <h1>🤖 NexusTG | Your Digital AI Twin</h1>
+  <p><b>A powerful Telegram Userbot managed through a classic Telegram Bot interface.</b></p>
 
   <p>
     <a href="https://github.com/newfpv/NexusTGTest"><img src="https://img.shields.io/badge/GitHub-Repository-blue?style=for-the-badge&logo=github" alt="GitHub Repo"></a>
@@ -13,125 +13,98 @@
 
 ---
 
-**NexusTG** — это не просто скрипт, это ваш **цифровой двойник**. Вы настраиваете его один раз, и он начинает работать в фоновом режиме на вашем аккаунте. Он умеет общаться за вас с помощью нейросетей, читать удаленные сообщения собеседников, переводить голосовые в текст и автоматизировать рутину. 
+**NexusTG** is not just a script; it's your **digital twin**. You set it up once, and it runs in the background on your personal Telegram account. It can reply for you using neural networks, read deleted messages from your contacts, transcribe voice messages, and automate your daily routine.
 
-А самое главное — **всё управление происходит прямо в Telegram** через удобные кнопки. Никаких конфигов и копания в коде после установки!
+Best of all—**everything is managed directly inside Telegram** using convenient buttons. No need to mess with config files or code after installation!
 
-## ✨ Что под капотом? (Модули)
+## ✨ Features & Modules
 
-* 🧠 **AI Twin (ИИ Двойник)** — Умный автоответчик на базе Google Gemini. Имитирует ваш стиль общения, «печатает» текст с реалистичными задержками и имеет настраиваемый «режим сна».
-* 🕵️ **Spy-Module (Шпион)** — Скрытно сохраняет **удаленные** и **измененные** сообщения собеседников, а также скачивает «исчезающие» (одноразовые) фото и видео в ваш секретный чат-дамп.
-* 🎙 **Голос в текст** — Автоматически (или по команде) расшифровывает голосовые сообщения и «кружочки». Для длинных аудио нейросеть сделает краткую выжимку (саммари).
-* 🎭 **Фейк активность** — Включает у собеседника статус, что вы «печатаете», «записываете видео» или «играете в игру» на заданное время.
-* 🧠 **Ручной ИИ (команда `.ai`)** — Напишите `.ai помоги решить задачу` в любом диалоге, и бот проанализирует контекст переписки, выдав ответ от нейросети прямо от вашего лица.
-* 🛒 **Список покупок** — Умный парсер. Отправьте текст (например: *"купи хлеб, 2л молока и сыр"*), и бот превратит его в красивый кликабельный чек-лист.
-* 👤 **Инфо-модуль** — Просмотр подробной скрытой технической информации о любом пользователе Telegram.
-
----
-
-## 🚀 ПОДРОБНАЯ ИНСТРУКЦИЯ ПО УСТАНОВКЕ (Для новичков)
-
-Не пугайтесь! Процесс выглядит объемным, но если идти строго по шагам, вы справитесь за 10 минут.
-
-### Шаг 1: Подготовка (Получаем нужные ключи)
-
-Перед запуском нам нужно получить 3 ключа:
-
-1. **Токен управляющего бота:**
-   * Зайдите в Telegram к [@BotFather](https://t.me/BotFather) и напишите `/newbot`.
-   * Придумайте имя и юзернейм (должен заканчиваться на `bot`, например `MyNexus_bot`).
-   * BotFather пришлет вам **Токен** (строка вида `1234567890:AAH...`). Сохраните её.
-2. **API ключи Telegram (Для юзербота):**
-   * Перейдите на [my.telegram.org](https://my.telegram.org) и войдите по своему номеру.
-   * Откройте раздел **API development tools**.
-   * Заполните форму (названия любые на английском) и нажмите *Create application*.
-   * Скопируйте **API_ID** (цифры) и **API_HASH** (длинная строка).
-3. **Ключ нейросети Gemini:**
-   * Перейдите в [Google AI Studio](https://aistudio.google.com/app/apikey) (нужен Google-аккаунт, может потребоваться VPN).
-   * Нажмите **Get API key** ➔ **Create API key** ➔ **Create API key in new project**.
-   * Скопируйте полученный ключ.
+* 🧠 **AI Twin** — A smart auto-responder powered by Google Gemini. It imitates your communication style, "types" text with realistic human delays, and features a customizable "sleep mode".
+* 🕵️ **Spy-Module** — Secretly saves **deleted** and **edited** messages from your chat partners, and downloads "disappearing" (view-once) photos/videos to your private dump chat.
+* 🎙 **Voice-to-Text** — Automatically (or manually) transcribes voice and video messages. For long audio, the AI will provide a short summary.
+* 🎭 **Fake Activity** — Shows a fake status to your chat partner (e.g., "typing...", "recording video", or "playing a game") for a specified duration.
+* 🧠 **Manual AI (`.ai` command)** — Type `.ai help me solve this` in any chat, and the bot will analyze the context of the conversation and send an AI-generated response directly from your account.
+* 🛒 **Shopping List** — A smart parser. Send a message like *"buy bread, 2L of milk, and cheese"*, and the bot will convert it into a neat, clickable checklist.
+* 👤 **Info Module** — View detailed, hidden technical information about any Telegram user.
 
 ---
 
-### Шаг 2: Установка программы
+## 🚀 QUICK START (1-Click Installation)
 
-Выберите платформу, на которой будет работать ваш бот. 
+Installation is super easy. The script will automatically download the necessary tools, create a blazing-fast virtual environment using `uv`, and place a shortcut right on your desktop.
 
-> 💡 **Рекомендация:** Для работы 24/7 лучше всего арендовать дешевый облачный Linux-сервер (VDS). Если хотите просто протестировать — ставьте на Windows.
+### Step 1: Get your Bot Token
+Go to Telegram, search for [@BotFather](https://t.me/BotFather), and send `/newbot`. Choose a name and a username. BotFather will give you a **Token** (e.g., `1234567890:AAH...`). Copy it; you'll need it in a moment.
 
-#### Вариант А: Быстрый тест на Windows (Локально)
-1. **Установите Python:** Скачайте [Python 3.11+](https://www.python.org/downloads/). ⚠️ **ОЧЕНЬ ВАЖНО:** при установке обязательно поставьте галочку **"Add Python.exe to PATH"** в самом низу окна!
-2. **Скачайте проект:** Нажмите зеленую кнопку **Code ➔ Download ZIP** на GitHub и распакуйте папку.
-3. **Настройте файл:**
-   * В папке найдите файл `.env.example` и переименуйте его в `.env`.
-   * Откройте `.env` через обычный «Блокнот».
-   * Вставьте ваш Токен от BotFather туда, где написано `TG_BOT_TOKEN=`. Получится так: `TG_BOT_TOKEN=1234567890:AAH_ваш_токен`. Сохраните файл.
-4. **Запуск:**
-   * В папке с проектом кликните правой кнопкой мыши по пустому месту и выберите **"Открыть в Terminal"** (или PowerShell).
-   * Введите команду `pip install .` и нажмите Enter (дождитесь установки).
-   * Введите `python main.py` и нажмите Enter. Бот запущен! *(Пока открыто черное окно — бот работает).*
+### Step 2: Installation
 
-#### Вариант Б: Установка на Linux / VDS сервер (Для работы 24/7)
-Поскольку на серверах нет мышки и блокнота, мы будем использовать простые команды:
-1. **Скачайте проект:**
-   ```bash
-   git clone [https://github.com/newfpv/NexusTGTest.git](https://github.com/newfpv/NexusTGTest.git)
-   cd NexusTGTest
-   ```
-2. **Создайте и настройте файл `.env`:**
-   * Переименуйте шаблон в рабочий файл:
-     `mv .env.example .env`
-   * Откройте файл в консольном редакторе `nano`:
-     `nano .env`
-   * Используйте стрелочки на клавиатуре, чтобы спустить курсор к строчке `TG_BOT_TOKEN=`.
-   * Вставьте ваш токен от BotFather. *(⚠️ ВАЖНО: `Ctrl+V` в консоли обычно не работает! Чтобы вставить текст, кликните правой кнопкой мыши или нажмите `Shift + Insert`)*.
-   * **Сохранение:** Нажмите `Ctrl + O` (сохранить) ➔ `Enter` (подтвердить имя файла) ➔ `Ctrl + X` (выйти).
-3. **Запустите проект** (рекомендуется использовать `tmux` или `screen`, чтобы бот не выключился после закрытия консоли):
-   ```bash
-   pip install .
-   python3 main.py
-   ```
+#### 🪟 For Windows (Fast & Native)
+1. Open the Start menu, type **PowerShell**, right-click it, and select **"Run as Administrator"**.
+2. Paste the following command and press Enter:
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -Command "irm [https://raw.githubusercontent.com/newfpv/NexusTGTest/main/install.ps1](https://raw.githubusercontent.com/newfpv/NexusTGTest/main/install.ps1) | iex"
+```
+3. Follow the on-screen instructions (the script will ask for your preferred language and your Bot Token).
+4. A shortcut named **Start NexusTG** will appear on your desktop. Double-click it to run your bot!
 
-#### Вариант В: Через Docker (Для продвинутых)
+#### 🐧 For Linux / Ubuntu (VPS Server)
+Connect to your server via SSH and paste this command:
 ```bash
+bash <(curl -sL "[https://raw.githubusercontent.com/newfpv/NexusTGTest/main/install.sh?t=$(date](https://raw.githubusercontent.com/newfpv/NexusTGTest/main/install.sh?t=$(date) +%s)")
+```
+The script will install the bot in the `~/NexusTG` folder and create a convenient `./start.sh` execution file.
+
+---
+
+## ⚙️ Step 3: In-App Setup (Inside Telegram)
+
+Once you've launched the bot on your PC or server (and the black console window is open), head over to Telegram!
+
+1. Open the bot you created with BotFather and press **START** (`/start`).
+2. The bot will ask you to input your system keys. You will need:
+   * **API_ID** and **API_HASH** (Get these at [my.telegram.org](https://my.telegram.org) under *API development tools*).
+   * **Gemini API Key** (Get this for free at [Google AI Studio](https://aistudio.google.com/app/apikey)).
+3. After entering the keys, click **"Log into Userbot"**.
+4. Enter your Telegram phone number and the confirmation code (you must enter the code using the inline buttons inside the bot).
+5. *If you have 2FA (Cloud Password) enabled, the bot will ask for it. This is processed locally and safely.*
+
+🎉 **ALL DONE! Welcome to the Main Menu.**
+
+---
+
+## 🐳 For Advanced Users (Docker / Manual Setup)
+
+If you prefer to deploy the project using Docker Compose:
+
+```bash
+# 1. Clone the repository
 git clone [https://github.com/newfpv/NexusTGTest.git](https://github.com/newfpv/NexusTGTest.git)
 cd NexusTGTest
+
+# 2. Configure the environment
 cp .env.example .env
-# Отредактируйте .env, добавив TG_BOT_TOKEN
-docker-compose up -d --build
+nano .env # Enter your TG_BOT_TOKEN and select your LANG_FILE
+
+# 3. Start the container
+docker compose up -d --build
+
+# View logs:
+docker compose logs -f
 ```
 
 ---
 
-### Шаг 3: Настройка внутри Telegram
+## 🛠 How to Use the Bot?
 
-Всё самое сложное позади! Теперь управление полностью в ваших руках через Telegram.
+* Go to **"My Chats"** — select any dialog and configure your AI Twin individually (e.g., set the bot to answer your boss strictly professionally, but reply to friends informally).
+* In the **"Core Settings"** section, you can update your API keys, change your timezone, and configure global system behavior.
+* To trigger manual modules (like AI or Shopping List), simply open the desired chat from your main Telegram account and type the trigger command (default: `.ai your prompt` or `.shop bread, milk`).
 
-1. Перейдите в вашего управляющего бота, которого вы создали в BotFather.
-2. Нажмите **СТАРТ** (`/start`).
-3. Бот попросит по очереди отправить данные с Шага 1:
-   * Ваш `API_ID` (цифрами).
-   * Ваш `API_HASH`.
-   * Ваш ключ(и) от `Gemini`.
-4. Нажмите **"Войти в юзербота"**.
-5. Введите свой номер телефона от Telegram (в формате `+79991234567`).
-6. Telegram пришлет вам системный код. Введите его с помощью **экранной клавиатуры** прямо в боте.
-7. *Если у вас стоит 2FA (облачный пароль) — бот попросит его ввести. Это безопасно.*
-
-🎉 **ГОТОВО! Добро пожаловать в Главное меню.**
-
----
-
-## 🛠 Как этим пользоваться?
-
-* Зайдите в **«Мои чаты»** — выберите любой диалог и настройте ИИ-двойника индивидуально (например, бот будет отвечать начальнику строго по делу, а друзьям — неформально).
-* В разделе **«Настройки ядра»** можно обновлять ключи API, менять часовой пояс и настраивать общее поведение системы.
-* Для работы ручных модулей (ИИ или Список покупок) просто зайдите в нужный чат с вашего основного аккаунта и напишите триггер-команду (по умолчанию `.ai ваш запрос` или `.shop хлеб, молоко`).
-
-> ⚠️ **Важное предупреждение (Disclaimer):**
-> Использование юзерботов официально не одобряется политикой Telegram. NexusTG имеет встроенные модули «человечности» (задержки, рваная печать), чтобы минимизировать риски. Тем не менее, **вы используете этот софт на свой страх и риск**. Не используйте бота для спама или массовых рассылок — это приведет к блокировке аккаунта.
+> ⚠️ **Disclaimer:**
+> The use of userbots is not officially endorsed by Telegram's Terms of Service. NexusTG includes built-in "humanity" modules (realistic delays, typos) to minimize risks. However, **you use this software at your own risk**. Do not use this bot for spam or mass messaging, as this will lead to account suspension.
 
 ---
 <div align="center">
-  <i>Создано для автоматизации рутины и комфортного общения в Telegram.</i>
+  <i>Built to automate your routine and make Telegram communication effortless.</i>
 </div>
+```

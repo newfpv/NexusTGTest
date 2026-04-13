@@ -23,6 +23,12 @@ function Draw-ProgressBar {
     Write-Host "`n[${BarFilled}${BarEmpty}] ${Percent}% | Step ${Step}/${TotalSteps} - $Text" -ForegroundColor Cyan
 }
 
+function Write-Utf8NoBom {
+    param([string]$FilePath, [string]$Content)
+    $utf8NoBom = New-Object System.Text.UTF8Encoding $False
+    [System.IO.File]::WriteAllText($FilePath, $Content, $utf8NoBom)
+}
+
 Clear-Host
 Write-Host "====================================================" -ForegroundColor Cyan
 Write-Host "  ✨ Welcome to the NexusTG (AI Twin) Installer ✨  " -ForegroundColor Green
@@ -30,9 +36,6 @@ Write-Host "====================================================" -ForegroundCol
 Write-Host "Sit back and relax. I'll do all the heavy lifting! 🚀"
 
 try {
-    # ---------------------------------------------------------
-    # STEP 1: Git
-    # ---------------------------------------------------------
     Draw-ProgressBar 1 "Checking Git..."
     if (!(Get-Command git -ErrorAction SilentlyContinue)) {
         Write-Host "Git not found. Installing via winget (please wait)..." -ForegroundColor Yellow
@@ -48,10 +51,6 @@ try {
     } else {
         Write-Host "✔ Git is ready!" -ForegroundColor Green
     }
-
-    # ---------------------------------------------------------
-    # STEP 2: Download Files
-    # ---------------------------------------------------------
     Draw-ProgressBar 2 "Downloading project files..."
     if (Test-Path $InstallDir) {
         Set-Location $InstallDir
@@ -62,10 +61,6 @@ try {
         Set-Location $InstallDir
         Write-Host "✔ Project downloaded successfully!" -ForegroundColor Green
     }
-
-    # ---------------------------------------------------------
-    # STEP 3: Install UV
-    # ---------------------------------------------------------
     Draw-ProgressBar 3 "Checking 'uv' (Turbo Python Manager)..."
     if (!(Get-Command uv -ErrorAction SilentlyContinue)) {
         Write-Host "Installing uv..." -ForegroundColor Yellow
@@ -78,10 +73,6 @@ try {
     } else {
         Write-Host "✔ uv is ready!" -ForegroundColor Green
     }
-
-    # ---------------------------------------------------------
-    # STEP 4: Bot Configuration
-    # ---------------------------------------------------------
     Draw-ProgressBar 4 "Configuring your bot..."
 
     $LangFiles = Get-ChildItem -Filter "language_*.json" | Select-Object -ExpandProperty Name
@@ -117,6 +108,9 @@ try {
 
     while ($true) {
         $Token = Read-Host "👉 Paste your TG_BOT_TOKEN here"
+
+        $Token = $Token.Trim()
+        
         Write-Host "⏳ Verifying token with Telegram..." -ForegroundColor Yellow
         
         try {
@@ -125,7 +119,11 @@ try {
                 $BotName = $Response.result.first_name
                 $BotUser = $Response.result.username
                 Write-Host "✅ Token is VALID! Connected to: $BotName (@$BotUser)" -ForegroundColor Green
-                Set-Content -Path $EnvPath -Value "TG_BOT_TOKEN=$Token`nLANG_FILE=$SelectedLang" -Encoding UTF8
+                
+                # Сохраняем .env файл СТРОГО без BOM
+                $EnvContent = "TG_BOT_TOKEN=$Token`r`nLANG_FILE=$SelectedLang"
+                Write-Utf8NoBom -FilePath $EnvPath -Content $EnvContent
+                
                 break
             }
         } catch {
@@ -133,27 +131,18 @@ try {
         }
     }
 
-    # ---------------------------------------------------------
-    # STEP 5: Dependencies
-    # ---------------------------------------------------------
     Draw-ProgressBar 5 "Building environment with 'uv'..."
     Write-Host "⚡ Installing libraries (this will just take a few seconds)..." -ForegroundColor Yellow
     
     uv venv
-    # FIX: Install dependencies directly from pyproject.toml without building the package
     uv pip install -r pyproject.toml
-
-    # ---------------------------------------------------------
-    # STEP 6: Desktop Shortcuts
-    # ---------------------------------------------------------
     Draw-ProgressBar 6 "Creating Desktop shortcuts..."
     
-    # Create start.bat
     $BatPath = Join-Path $InstallDir "start.bat"
     $BatContent = "@echo off`r`ntitle NexusTG Bot`r`ncolor 0b`r`ncd /d `"%~dp0`"`r`necho ========================================`r`necho   NexusTG Bot is Starting...`r`necho   Please do NOT close this window!`r`necho ========================================`r`nuv run main.py`r`npause"
-    Set-Content -Path $BatPath -Value $BatContent -Encoding UTF8
+    
+    Write-Utf8NoBom -FilePath $BatPath -Content $BatContent
 
-    # Create Desktop Shortcut
     try {
         $WshShell = New-Object -ComObject WScript.Shell
         $DesktopPath = [System.Environment]::GetFolderPath('Desktop')

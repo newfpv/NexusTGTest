@@ -102,9 +102,3 @@ docker compose logs -f
 
 > ⚠️ **Disclaimer:**
 > The use of userbots is not officially endorsed by Telegram's Terms of Service. NexusTG includes built-in "humanity" modules (realistic delays, typos) to minimize risks. However, **you use this software at your own risk**. Do not use this bot for spam or mass messaging, as this will lead to account suspension.
-
----
-<div align="center">
-  <i>Built to automate your routine and make Telegram communication effortless.</i>
-</div>
-```

@@ -1,17 +1,32 @@
 #!/bin/bash
 
-# Colors for friendly output
+
+set -e
+
+
 CYAN='\033[0;36m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
 RED='\033[0;31m'
-NC='\033[0m' # No Color
+DARKGRAY='\033[1;30m'
+NC='\033[0m'
 
-INSTALL_DIR="/opt/NexusTG"
+
+INSTALL_DIR="$HOME/NexusTG"
 REPO_URL="https://github.com/newfpv/NexusTGTest.git"
-TOTAL_STEPS=5
+TOTAL_STEPS=6
 
-# Function to draw a nice progress bar with percentages
+
+wait_and_exit() {
+    echo -e "\n${DARKGRAY}Press ENTER to close this window...${NC}"
+    read -r
+    exit 1
+}
+
+
+trap 'echo -e "\n${RED}❌ An unexpected error occurred. Exiting...${NC}"; wait_and_exit' ERR
+
+
 draw_progress_bar() {
     local step=$1
     local text=$2
@@ -27,125 +42,137 @@ clear
 echo -e "${CYAN}====================================================${NC}"
 echo -e "${GREEN}  ✨ Welcome to the NexusTG (AI Twin) Installer ✨  ${NC}"
 echo -e "${CYAN}====================================================${NC}"
-echo -e "Sit back and relax! I'll do all the heavy lifting for you. 🚀"
+echo -e "Sit back and relax. I'll do all the heavy lifting! 🚀"
 
-# ---------------------------------------------------------
-# STEP 1: Tools
-# ---------------------------------------------------------
-draw_progress_bar 1 "Installing necessary tools (git, curl)..."
+draw_progress_bar 1 "Checking Git & Curl..."
 if ! command -v git &> /dev/null || ! command -v curl &> /dev/null; then
-    apt-get update -qq && apt-get install -y -qq git curl > /dev/null 2>&1
-    echo -e "${GREEN}✔ Tools installed!${NC}"
+    echo -e "${YELLOW}Tools not found. Installing via apt (sudo required)...${NC}"
+    if command -v apt-get &> /dev/null; then
+        sudo apt-get update -qq && sudo apt-get install -y -qq git curl > /dev/null 2>&1
+        echo -e "${GREEN}✔ Tools installed successfully!${NC}"
+    else
+        echo -e "${RED}❌ Error: apt-get not found. Please install git and curl manually.${NC}"
+        wait_and_exit
+    fi
 else
-    echo -e "${GREEN}✔ Tools are already installed!${NC}"
+    echo -e "${GREEN}✔ Tools are ready!${NC}"
 fi
 
-# ---------------------------------------------------------
-# STEP 2: Repository
-# ---------------------------------------------------------
-draw_progress_bar 2 "Downloading the project files..."
+draw_progress_bar 2 "Downloading project files..."
 if [ -d "$INSTALL_DIR" ]; then
     cd "$INSTALL_DIR"
     git pull -q
-    echo -e "${GREEN}✔ Project files updated!${NC}"
+    echo -e "${GREEN}✔ Project files updated in $INSTALL_DIR!${NC}"
 else
     git clone -q "$REPO_URL" "$INSTALL_DIR"
     cd "$INSTALL_DIR"
-    echo -e "${GREEN}✔ Project downloaded to $INSTALL_DIR!${NC}"
+    echo -e "${GREEN}✔ Project downloaded successfully!${NC}"
 fi
 
-# ---------------------------------------------------------
-# STEP 3: Docker
-# ---------------------------------------------------------
-draw_progress_bar 3 "Setting up Docker & Compose..."
-if ! command -v docker &> /dev/null; then
-    echo -e "${YELLOW}🐳 Docker is missing. Installing it now (this might take a minute)...${NC}"
-    curl -fsSL https://get.docker.com -o get-docker.sh
-    sh get-docker.sh > /dev/null 2>&1
-    rm get-docker.sh
-    echo -e "${GREEN}✔ Docker installed!${NC}"
+draw_progress_bar 3 "Checking 'uv' (Turbo Python Manager)..."
+if ! command -v uv &> /dev/null; then
+    echo -e "${YELLOW}Installing uv...${NC}"
+    curl -LsSf https://astral.sh/uv/install.sh | sh > /dev/null 2>&1
+    
+    # Обновляем пути "на лету"
+    export PATH="$HOME/.local/bin:$HOME/.cargo/bin:$PATH"
+    
+    echo -e "${GREEN}✔ uv installed successfully!${NC}"
 else
-    echo -e "${GREEN}✔ Docker is already installed!${NC}"
+    echo -e "${GREEN}✔ uv is ready!${NC}"
 fi
 
-if ! docker compose version &> /dev/null; then
-    apt-get update -qq && apt-get install -y -qq docker-compose-plugin > /dev/null 2>&1
-    echo -e "${GREEN}✔ Docker Compose installed!${NC}"
-fi
+draw_progress_bar 4 "Configuring your bot..."
 
-# ---------------------------------------------------------
-# STEP 4: Configuration
-# ---------------------------------------------------------
-draw_progress_bar 4 "Bot Configuration & Language..."
-
-echo -e "\n${CYAN}🌍 What language would you like your bot to use?${NC}"
 LANG_FILES=(language_*.json)
+SELECTED_LANG="language_EN.json"
+
 if [ -e "${LANG_FILES[0]}" ]; then
+    echo -e "\n${CYAN}🌍 Select Language:${NC}"
     for i in "${!LANG_FILES[@]}"; do
-        LANG_CODE=$(echo "${LANG_FILES[$i]}" | sed -n 's/language_\(.*\)\.json/\1/p')
-        echo "   $((i+1)). $LANG_CODE"
+        CODE=$(echo "${LANG_FILES[$i]}" | sed -n 's/language_\(.*\)\.json/\1/p')
+        echo "   $((i+1)). $CODE"
     done
+    read -p "👉 Enter number (Press Enter for EN): " CHOICE
     
-    echo -e "${YELLOW}👉 Please enter the number (press Enter for default EN): ${NC}"
-    read -r lang_choice
-    
-    if ! [[ "$lang_choice" =~ ^[0-9]+$ ]] || [ "$lang_choice" -le 0 ] || [ "$lang_choice" -gt "${#LANG_FILES[@]}" ]; then
-        if [[ " ${LANG_FILES[*]} " =~ " language_EN.json " ]]; then
-            SELECTED_LANG="language_EN.json"
-        else
-            SELECTED_LANG="${LANG_FILES[0]}"
-        fi
+    if [[ "$CHOICE" =~ ^[0-9]+$ ]] && [ "$CHOICE" -gt 0 ] && [ "$CHOICE" -le "${#LANG_FILES[@]}" ]; then
+        SELECTED_LANG="${LANG_FILES[$((CHOICE-1))]}"
+    elif [[ " ${LANG_FILES[*]} " =~ " language_EN.json " ]]; then
+        SELECTED_LANG="language_EN.json"
     else
-        SELECTED_LANG="${LANG_FILES[$((lang_choice-1))]}"
+        SELECTED_LANG="${LANG_FILES[0]}"
     fi
     echo -e "${GREEN}✅ Selected language: $SELECTED_LANG${NC}"
-else
-    echo -e "${RED}⚠️ No translation files found! Defaulting to language_EN.json${NC}"
-    SELECTED_LANG="language_EN.json"
 fi
 
-echo -e "\n${CYAN}⚙️  Connecting your Telegram Bot${NC}"
-if [ ! -f .env ]; then
-    echo -e "${YELLOW}====================================================${NC}"
-    echo -e "🤖 ${GREEN}How to get your TG_BOT_TOKEN:${NC}"
-    echo -e "1. Open Telegram and search for ${CYAN}@BotFather${NC} (with a blue tick)."
-    echo -e "2. Send the command: ${CYAN}/newbot${NC}"
-    echo -e "3. Choose a name and a username for your bot."
-    echo -e "4. BotFather will give you a token (e.g. 1234567890:ABCdef...)."
-    echo -e "${YELLOW}====================================================${NC}\n"
+ENV_PATH="$INSTALL_DIR/.env"
+echo -e "\n${CYAN}🔑 Connecting your Telegram Bot${NC}"
 
-    read -p "🔑 Please paste your TG_BOT_TOKEN here: " TG_BOT_TOKEN
+echo -e "${DARKGRAY}====================================================${NC}"
+echo -e "${GREEN}🤖 How to get your TG_BOT_TOKEN:${NC}"
+echo -e "1. Open Telegram and search for @BotFather (with a blue tick)."
+echo -e "2. Send the command: /newbot"
+echo -e "3. Choose a name and a username for your bot."
+echo -e "4. BotFather will give you a token (e.g. 1234567890:ABCdef...)."
+echo -e "${DARKGRAY}====================================================\n${NC}"
 
-    echo "TG_BOT_TOKEN=$TG_BOT_TOKEN" > .env
-    echo "LANG_FILE=$SELECTED_LANG" >> .env
-    echo -e "${GREEN}✅ Token saved successfully!${NC}"
-else
-    echo -e "${GREEN}✅ Configuration file (.env) already exists. Updating language...${NC}"
-    if grep -q "LANG_FILE=" .env; then
-        sed -i "s/^LANG_FILE=.*/LANG_FILE=$SELECTED_LANG/" .env
+set +e
+while true; do
+    read -p "👉 Paste your TG_BOT_TOKEN here: " RAW_TOKEN
+    TG_BOT_TOKEN=$(echo "$RAW_TOKEN" | xargs)
+    
+    echo -e "${YELLOW}⏳ Verifying token with Telegram...${NC}"
+    
+    HTTP_STATUS=$(curl -s -o /tmp/tg_resp.json -w "%{http_code}" "https://api.telegram.org/bot$TG_BOT_TOKEN/getMe")
+    
+    if [ "$HTTP_STATUS" -eq 200 ]; then
+        BOT_NAME=$(grep -o '"first_name":"[^"]*' /tmp/tg_resp.json | cut -d'"' -f4)
+        BOT_USER=$(grep -o '"username":"[^"]*' /tmp/tg_resp.json | cut -d'"' -f4)
+        echo -e "${GREEN}✅ Token is VALID! Connected to: $BOT_NAME (@$BOT_USER)${NC}"
+        
+        echo "TG_BOT_TOKEN=$TG_BOT_TOKEN" > "$ENV_PATH"
+        echo "LANG_FILE=$SELECTED_LANG" >> "$ENV_PATH"
+        rm -f /tmp/tg_resp.json
+        break
     else
-        echo "LANG_FILE=$SELECTED_LANG" >> .env
+        echo -e "${RED}❌ Error! Telegram rejected this token. Please check it and try again.${NC}"
     fi
-fi
+done
+set -e
+draw_progress_bar 5 "Building environment with 'uv'..."
+echo -e "${YELLOW}⚡ Installing libraries (this will just take a few seconds)...${NC}"
 
-# ---------------------------------------------------------
-# STEP 5: Launch
-# ---------------------------------------------------------
-draw_progress_bar 5 "Building and launching the bot..."
-echo -e "${YELLOW}This might take a couple of minutes depending on your server speed...${NC}"
-docker compose up -d --build
+uv venv
+uv pip install -r pyproject.toml
+draw_progress_bar 6 "Creating start script..."
+
+START_SCRIPT="$INSTALL_DIR/start.sh"
+cat << 'EOF' > "$START_SCRIPT"
+#!/bin/bash
+cd "$(dirname "$0")" || exit
+echo -e "\033[0;36m========================================\033[0m"
+echo -e "\033[0;32m  NexusTG Bot is Starting...\033[0m"
+echo -e "\033[0;33m  Please do NOT close this window!\033[0m"
+echo -e "\033[0;36m========================================\033[0m"
+uv run main.py
+echo -e "\n\033[1;30mPress ENTER to exit...\033[0m"
+read -r
+EOF
+
+chmod +x "$START_SCRIPT"
+echo -e "${GREEN}✔ Script 'start.sh' created successfully!${NC}"
 
 echo -e "\n${CYAN}====================================================${NC}"
-echo -e "${GREEN} 🎉 ALL DONE! NexusTG is now running in the background! 🎉${NC}"
-echo -e "${CYAN}====================================================${NC}\n"
+echo -e "${GREEN} 🎉 INSTALLATION COMPLETED SUCCESSFULLY! 🎉${NC}"
+echo -e "${CYAN}====================================================\n${NC}"
 
-echo -e "Go to Telegram and send ${YELLOW}/start${NC} to your bot to finish the setup!\n"
+echo -e "${RED}⚠️ IMPORTANT RULE:${NC}"
+echo -e "${YELLOW}The bot only runs while the terminal window is open."
+echo -e "If you close it, the bot will immediately shut down!\n${NC}"
 
-echo -e "${GREEN}📌 Quick Guide & Useful Commands:${NC}"
-echo -e "You can run these commands from the installation folder (${YELLOW}$INSTALL_DIR${NC}):\n"
-echo -e "🔹 ${CYAN}cd $INSTALL_DIR${NC}                 - Navigate to the bot folder"
-echo -e "🔹 ${CYAN}docker compose logs -f${NC}        - View real-time bot logs (Ctrl+C to exit)"
-echo -e "🔹 ${CYAN}docker compose restart${NC}        - Restart the bot safely"
-echo -e "🔹 ${CYAN}docker compose down${NC}           - Stop the bot completely"
-echo -e "🔹 ${CYAN}docker compose up -d --build${NC}  - Update and start the bot after changing files"
-echo -e "\n${GREEN}Enjoy using your NexusTG! 🤖✨${NC}\n"
+echo -e "${CYAN}📌 HOW TO RUN THE BOT NOW:${NC}"
+echo -e "1. Go to the bot folder: ${GREEN}cd ~/NexusTG${NC}"
+echo -e "2. Run the start script: ${GREEN}./start.sh${NC}"
+echo -e "3. Open Telegram and send /start to your bot.\n"
+
+wait_and_exit
